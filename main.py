@@ -19,10 +19,10 @@ FAN_COOLDOWN_MINUTES = 5
 FAN_COOLDOWN_MS = FAN_COOLDOWN_MINUTES * 60 * 1000
 
 # --- Initial State ---
-motherboard_power_control.high() # Set HIGH to keep active-low relay OFF
+motherboard_power_control.high() # Set HIGH to keep active-low power relay OFF
 power_ok_signal.low()
 case_led.low()
-fan_relay_control.high() # Set HIGH to keep active-low fan relay OFF
+fan_relay_control.low() # Energize relay to keep fans OFF initially.
 print("Pico controller initialized. Waiting for commands.")
 
 # --- Helper Function ---
@@ -43,7 +43,7 @@ while True:
     # --- State Change Detection (Handles PWR_OK and Fans) ---
     if current_pc_state and not pc_is_on_flag: # PC just turned ON
         print("PC turned ON.")
-        fan_relay_control.low() # Turn fans ON
+        fan_relay_control.high() # De-energize relay to turn fans ON
         shutdown_fan_timer_start = 0
         print(f"Waiting {POWER_OK_DELAY_MS}ms to send PWR_OK...")
         time.sleep_ms(POWER_OK_DELAY_MS)
@@ -62,7 +62,7 @@ while True:
     if shutdown_fan_timer_start != 0:
         if time.ticks_diff(time.ticks_ms(), shutdown_fan_timer_start) >= FAN_COOLDOWN_MS:
             print("Cooldown complete. Turning fans OFF.")
-            fan_relay_control.high()
+            fan_relay_control.low() # Energize relay to turn fans OFF
             shutdown_fan_timer_start = 0
             
     case_led.value(pc_is_on_flag)
@@ -78,6 +78,4 @@ while True:
     if reset_button.value() == 0 and pc_is_on_flag:
         print("Reset button pressed. Requesting OS shutdown/reboot.")
         pulse_motherboard_power()
-        time.sleep(1) # Debounce
-    
-    time.sleep_ms(50)
+        time.sleep(1) # Deb
